@@ -1,5 +1,6 @@
 // Single source of truth for the site: one entry per resident, in plot order.
-// n = name shown, h = YouTube @handle, f = flag code (eg sa sy iq ps ye), d = district.
+// n = name shown, h = YouTube @handle, f = flag code (eg sa sy iq ps ye ly ma), d = district (3 = ice-lake settlement, ep7).
+// mansa/video/src/marsResidents.ts is a copy for the videos: re-copy after editing.
 export type Resident = { n: string; h: string; f?: string; d: number };
 export const RESIDENTS: Resident[] = [
   {"n":"فراس","h":"FerasQai","d":1},
@@ -56,4 +57,17 @@ export const RESIDENTS: Resident[] = [
   {"n":"صلاح","h":"Tota-ng9yl","d":2},
   {"n":"جعفر","h":"علفغلف","d":2},
   {"n":"ريان","h":"NajatMarrouch","d":2},
+  {"n": "حميد", "h": "Aldahdyosama", "f": "ly", "d": 2},
+  {"n": "أسر", "h": "ايهلفنونالهاندميد", "d": 2},
+  {"n": "علي", "h": "محمدمحمدابورضا-ف1ب", "f": "iq", "d": 2},
+  {"n": "محمد", "h": "black_fanss", "f": "iq", "d": 2},
+  {"n": "صلاح", "h": "صلاح-ص2ظ", "f": "sa", "d": 2},
+  {"n": "كنان", "h": "adimi270", "f": "ye", "d": 2},
+  {"n": "فرح", "h": "فرحالمطيري-ل5ش", "f": "sa", "d": 2},
+  {"n": "حيدر", "h": "عباسالناحي", "d": 2},
+  {"n": "سليم", "h": "SilemEmam", "d": 2},
+  {"n": "جاد", "h": "JADRaji-q2g", "f": "ma", "d": 3},
+  {"n": "سهيلا", "h": "سهيلادغريري-ع2ع", "f": "sa", "d": 3},
+  {"n": "يوسف", "h": "YOUSSEFRamy-x3l", "d": 3},
+  {"n": "فوفو", "h": "SaraSalah-r4t", "f": "eg", "d": 3},
 ];

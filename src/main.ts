@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
-import { buildWorld, wave, HOMES, FREE, DOC, GATE_AT, C2, flagCanvas } from './world';
+import { buildWorld, wave, HOMES, FREE, DOC, GATE_AT, C2, flagCanvas, PIPE0, PIPE1 } from './world';
 import { RESIDENTS } from './residents';
 import { CHALLENGES } from './terrain';
 import { RES } from './resources';
@@ -138,7 +138,7 @@ function select(i: number) {
   $('#results').innerHTML = ''; q.value = ''; q.blur();
   $('#cardName').innerHTML = `${h.r.f ? `<img src="${flagImg(h.r.f)}" alt="">` : ''}${h.r.n}`;
   $('#cardHandle').textContent = '@' + h.r.h;
-  $('#cardWhere').textContent = h.d === 1 ? 'الحي الأول · جنب قبة الدكتور' : 'الحي الجديد · ورا البوابة الدهب';
+  $('#cardWhere').textContent = h.d === 1 ? 'الحي الأول · جنب قبة الدكتور' : h.d === 2 ? 'الحي الجديد · ورا البوابة الدهب' : 'بحيرة الجليد 🧊 · أول سكانها';
   card.classList.add('on'); document.body.classList.add('carded');
 }
 function deselect() { sel = -1; selC = -1; card.classList.remove('on'); document.body.classList.remove('carded'); history.replaceState(null, '', location.pathname); }
@@ -151,7 +151,7 @@ function selectChal(k: number) {
   $('#share').textContent = 'قول فكرتك 💬';
   card.classList.add('on', 'chal'); document.body.classList.add('carded');
 }
-const pct = (r: { cap: number }) => Math.min(999, Math.round((r.cap / RESIDENTS.length) * 100));
+const pct = (r: { cap: number }) => Math.min(100, Math.round((r.cap / RESIDENTS.length) * 100));
 function selectRes(k: number) {
   const r = RES[k], ok = r.cap >= RESIDENTS.length; sel = -1; selC = -1;
   flyTo({ p: r.at.clone().add(VIEW.clone().multiplyScalar(cam.aspect < 1 ? 42 : 30)), t: r.at.clone() }, 1500);
@@ -182,7 +182,7 @@ const n = RESIDENTS.length;
 $('#count').textContent = ar(n);
 $('#goal').textContent = ar(GOAL);
 $('#bar i').style.width = Math.min(100, (n / GOAL) * 100) + '%';
-$('#free').textContent = ar(FREE.length);
+if (FREE.length) $('#free').textContent = ar(FREE.length); else $('#cta small').textContent = 'الأرض خلصت… الحي الجاي هيتبني بأساميكم';
 RES.forEach((r, k) => {
   const b = document.createElement('button'); const p = pct(r), ok = p >= 100;
   b.className = 'res' + (ok ? '' : ' low'); b.innerHTML = `${r.icon}<b>${ar(Math.min(p, 100))}٪</b>`;
@@ -249,6 +249,7 @@ function frame() {
   W.beacon.material.opacity = (Math.sin(t * 3) > 0.6 ? 1 : 0.25);
   W.glint.material.opacity = 0.5 + 0.5 * Math.max(0, Math.sin(t * 2.3)) ** 3;
   W.lava.material.opacity = 0.45 + 0.15 * Math.sin(t * 1.1);
+  W.pulses.forEach((s, i) => { const u = (t * 0.35 + i / W.pulses.length) % 1; s.position.copy(PIPE1).lerp(PIPE0, u).setY(0.75); s.material.opacity = 0.9 * Math.sin(u * Math.PI); });
   (W.beam.material as THREE.MeshBasicMaterial).opacity = sel >= 0 ? 0.22 + 0.06 * Math.sin(t * 5) : 0;
   fx.render(scene, cam);
   placeLabels();

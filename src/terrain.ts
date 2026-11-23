@@ -9,7 +9,7 @@ export const CHALLENGES: Challenge[] = [
   { key: 'canyon', title: '🔒 الوادي العظيم', desc: 'عمقه مش باين… والحي التالت لازم يعدّيه. نبني كوبري؟ ولا ننزل جوّه؟', at: V(39, 0, 14), tag: V(39, 3, 14), view: 70 },
   { key: 'crater', title: '🔒 فوهة النيزك', desc: 'نيزك وقع هنا من زمان… ولسه فيه حاجة بتلمع في القاع.', at: V(-42, 0, 18), tag: V(-42, 5, 18), view: 50 },
   { key: 'volcano', title: '🔒 البركان النايم', desc: 'نايم من مليون سنة… بس الأرض بدأت تسخن.', at: V(-6, 0, -66), tag: V(-6, 17, -66), view: 95, low: true },
-  { key: 'ice', title: '🔒 بحيرة الجليد', desc: 'أول مية على المريخ! بس بعيدة عن المدينة… محتاجين طريق.', at: V(-24, 0, 76), tag: V(-24, 4, 76), view: 46 },
+  { key: 'ice', title: '🧊 بحيرة الجليد', desc: 'أول مية على المريخ! ماسورة بتوصّلها للمدينة، وجنبها أول ٤ سكان: جاد وسهيلا ويوسف وفوفو.', at: V(-24, 0, 76), tag: V(-24, 4, 76), view: 46 },
 ];
 
 // canyon edges: a gentle meander, 10 units wide, running north–south past the east side of the city
@@ -35,7 +35,7 @@ export function buildGround(root: THREE.Object3D) {
   return t;
 }
 
-export function buildTerrain(root: THREE.Object3D) {
+export function buildTerrain(root: THREE.Object3D, avoid: { x: number; z: number }[] = []) {
   const r = rng(404);
   const ht = tex(paintGround(19, '#6a2c1e', '#3f1710', '#8a4430'), 2, 2);
 
@@ -90,7 +90,7 @@ export function buildTerrain(root: THREE.Object3D) {
   })();
   mesh(root, new THREE.CircleGeometry(12, 48), OL(new THREE.MeshToonMaterial({ color: '#ffffff', map: iceT }), false), [ic.x, 0.05, ic.z], [1.3, 1, 1], [-Math.PI / 2, 0, 0], false);
   const ice = toon('#e6f7ff');
-  for (let i = 0; i < 22; i++) { const a = r() * Math.PI * 2, d = 13 + r() * 7, s = 0.6 + r() * 1.8; mesh(root, new THREE.DodecahedronGeometry(1, 0), ice, [ic.x + Math.cos(a) * d * 1.3, s * 0.4, ic.z + Math.sin(a) * d], [s, s * (0.8 + r()), s], [r() * 3, r() * 3, r() * 3]); }
+  for (let i = 0; i < 22; i++) { const a = r() * Math.PI * 2, d = 13 + r() * 7, s = 0.6 + r() * 1.8, bx = ic.x + Math.cos(a) * d * 1.3, bz = ic.z + Math.sin(a) * d; if (avoid.some((p) => Math.hypot(p.x - bx, p.z - bz) < 3.4)) continue; mesh(root, new THREE.DodecahedronGeometry(1, 0), ice, [ic.x + Math.cos(a) * d * 1.3, s * 0.4, ic.z + Math.sin(a) * d], [s, s * (0.8 + r()), s], [r() * 3, r() * 3, r() * 3]); }
 
   return { glint, lava };
 }

@@ -7,7 +7,7 @@ import { toon, flat, mesh, V, OL } from './MarsKit';
 
 export type Res = { key: string; icon: string; name: string; fac: string; cap: number; at: THREE.Vector3; tag: THREE.Vector3; fix: string; v?: string };
 export const RES: Res[] = [
-  { key: 'water', icon: '💧', name: 'المية', fac: 'خزان المية', cap: 40, at: V(-10, 0, 47), tag: V(-10, 6.2, 47), fix: 'الحل في بحيرة الجليد 🧊… بس محتاجين طريق لها' },
+  { key: 'water', icon: '💧', name: 'المية', fac: 'خزان المية', v: 'بيكفّي بعد الماسورة', cap: 80, at: V(-10, 0, 47), tag: V(-10, 6.2, 47), fix: 'الحلقة ٧: الماسورة وصلت من بحيرة الجليد 🧊' },
   { key: 'oxygen', icon: '🫧', name: 'الأكسجين', fac: 'مولّد الأكسجين', cap: 70, at: V(23, 0, -4), tag: V(23, 7.4, -4), fix: '' },
   { key: 'food', icon: '🌱', name: 'الأكل', fac: 'الصوب الزراعية', v: 'بتكفّي', cap: 50, at: V(-10, 0, 32), tag: V(-10, 4, 32), fix: 'محتاجين صوبة جديدة… والصوبة محتاجة مية!' },
   { key: 'power', icon: '⚡', name: 'الكهربا', fac: 'مزرعة الطاقة الشمسية', v: 'بتكفّي', cap: 90, at: V(0, 0, -25), tag: V(0, 3.6, -25), fix: '' },
@@ -63,18 +63,12 @@ export function buildFacilities(root: THREE.Object3D, residents: number) {
     mesh(root, new THREE.CylinderGeometry(1.7, 1.7, 3.6, 24, 1, true, -Math.PI / 2, Math.PI), glass, [gp.x, 0, z], [1, 1, 1], [-Math.PI / 2, 0, 0], false);
   });
 
-  // 💧 water tank with a level gauge (shows cap / residents), and stakes marking the planned road to the ice lake
+  // 💧 water tank with a level gauge (shows cap / residents); the pipe to the ice lake is built in world.ts (ep7)
   const wp = RES[0].at;
   mesh(root, new THREE.CylinderGeometry(2.3, 2.3, 4.2, 28), metal, [wp.x, 2.1, wp.z]);
   mesh(root, new THREE.CylinderGeometry(2.4, 2.4, 0.25, 28), dark, [wp.x, 4.25, wp.z]);
   const lvl = Math.min(1, RES[0].cap / residents);
   mesh(root, new THREE.PlaneGeometry(0.7, 3.6), dark, [wp.x, 2.1, wp.z + 2.32], [1, 1, 1], [0, 0, 0], false);
   mesh(root, new THREE.PlaneGeometry(0.5, 3.4 * lvl), flat(lvl < 1 ? '#ff5a3c' : '#3fc1ff'), [wp.x, 0.4 + 1.7 * lvl, wp.z + 2.34], [1, 1, 1], [0, 0, 0], false);
-  const stake = toon('#e9d6a0'), tip = flat('#ff8a2a');
-  for (let k = 1; k <= 6; k++) {
-    const u = k / 7, x = wp.x + (-24 - wp.x) * u, z = wp.z + 3 + (76 - 12 - wp.z - 3) * u;
-    mesh(root, new THREE.CylinderGeometry(0.05, 0.06, 0.9, 6), stake, [x, 0.45, z]);
-    mesh(root, new THREE.ConeGeometry(0.14, 0.3, 6), tip, [x, 1.0, z]);
-  }
   return { beacon };
 }

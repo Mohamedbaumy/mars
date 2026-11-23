@@ -1,4 +1,4 @@
-// The Mars city as it stands after ep6, built with the same toon kit as the videos (MarsKit.ts is a copy of
+// The Mars city as it stands after ep7 (lake settlement + pipe), built with the same toon kit as the videos (MarsKit.ts is a copy of
 // mansa/video/src/MarsKit.ts). Layout matches MarsCity6.tsx: district 1 = rings 2–3 of a 7×7 grid around the doctor's
 // dome, its last plot is the golden gate; district 2 = a 5×5 grid beyond the gate with an obelisk in the middle.
 import * as THREE from 'three';
@@ -24,9 +24,15 @@ for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (i || j) D2.push(
 D2.sort((a, b) => (a.z - b.z) * 10 + Math.abs(a.x - C2.x) - Math.abs(b.x - C2.x));
 
 export const DOC = V(0, 0, -2.4), PAD = V(0, 0, 3.4);
-const d1 = RESIDENTS.filter((r) => r.d === 1), d2 = RESIDENTS.filter((r) => r.d === 2);
+// district 3 = the ice-lake shore (ep7): same plots as MarsCity7.tsx LAKE_PLOTS
+export const LAKE_PLOTS: P[] = [{ x: -32, z: 63.5 }, { x: -28.5, z: 63.5 }, { x: -19.5, z: 63.5 }, { x: -16, z: 63.5 }];
+export const LAKE_C = V(-24, 0, 76);
+// the pipe: water tank (resources.ts RES[0].at = -10,0,47) → pump on the shore
+export const PIPE0 = V(-10 - 1.2, 0.35, 47 + 2.6), PIPE1 = V(-24, 0.35, 64);
+const onPipe = (x: number, z: number) => Math.abs((x - PIPE0.x) * (PIPE1.z - PIPE0.z) - (z - PIPE0.z) * (PIPE1.x - PIPE0.x)) / PIPE0.distanceTo(PIPE1) < 2 && z > PIPE0.z - 2 && z < PIPE1.z + 2 || LAKE_PLOTS.some((p) => Math.hypot(p.x - x, p.z - z) < 3.5);
+const d1 = RESIDENTS.filter((r) => r.d === 1), d2 = RESIDENTS.filter((r) => r.d === 2), d3 = RESIDENTS.filter((r) => r.d === 3);
 export const HOMES = RESIDENTS.map((r) => {
-  const p = r.d === 1 ? PLOTS[d1.indexOf(r)] : D2[d2.indexOf(r)];
+  const p = r.d === 1 ? PLOTS[d1.indexOf(r)] : r.d === 2 ? D2[d2.indexOf(r)] : LAKE_PLOTS[d3.indexOf(r)];
   return { r, pos: V(p.x, 0, p.z), d: r.d };
 });
 export const FREE = D2.slice(d2.length).map((p) => V(p.x, 0, p.z));
@@ -113,12 +119,12 @@ export function buildWorld(scene: THREE.Scene) {
   const root = new THREE.Group(); scene.add(root);
   root.add(new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.MeshBasicMaterial({ map: stars(), side: THREE.BackSide, fog: false })));
   buildGround(root);
-  const terrain = buildTerrain(root);
+  const terrain = buildTerrain(root, LAKE_PLOTS);
   const fac = buildFacilities(root, RESIDENTS.length);
   const ht = tex(paintGround(11, '#5e2a1e', '#3a1610', '#7a3826'), 3, 2), hr = rng(5);
   for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2 + hr() * 0.3, d = 64 + hr() * 26, hx = Math.cos(a) * d + 4, hz = Math.sin(a) * d + 16; if (onTerrain(hx, hz)) continue; mesh(root, new THREE.SphereGeometry(1, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), toon('#ffffff', ht), [Math.cos(a) * d + 4, -0.5, Math.sin(a) * d + 16], [10 + hr() * 12, 3 + hr() * 6, 8 + hr() * 8], [0, hr() * 3, 0], false); }
   const rr = rng(9), rock = toon('#5a2618', ht);
-  const busy = (x: number, z: number) => Math.max(Math.abs(x), Math.abs(z)) < 17.5 || (Math.abs(x - C2.x) < 13.5 && z > GATE_AT.z - 1 && z < C2.z + 13.5);
+  const busy = (x: number, z: number) => Math.max(Math.abs(x), Math.abs(z)) < 17.5 || (Math.abs(x - C2.x) < 13.5 && z > GATE_AT.z - 1 && z < C2.z + 13.5) || onPipe(x, z);
   for (let i = 0; i < 90; i++) { const x = (rr() - 0.5) * 100, z = (rr() - 0.5) * 100 + 16; if (busy(x, z) || onTerrain(x, z) || onFacility(x, z)) continue; const s = 0.25 + rr() ** 2 * 1.4; mesh(root, new THREE.DodecahedronGeometry(1, 0), rock, [x, s * 0.3, z], [s, s * 0.7, s * 0.9], [rr() * 3, rr() * 3, rr() * 3]); }
 
   // district 1
@@ -135,9 +141,9 @@ export function buildWorld(scene: THREE.Scene) {
   const cloths: THREE.Mesh[] = [];
   HOMES.forEach(({ pos, d, r }, k) => {
     const i1 = k;   // index in plot order
-    const center = d === 1 ? V(0, 0, 0) : C2;
-    const band = d === 2 ? '#5be38a' : i1 === 0 ? '#ffd23f' : i1 >= 15 ? '#3fc1ff' : i1 >= 10 ? '#ff8a2a' : undefined;
-    const dm = buildDome(root, 1.25, d === 2 ? '#eef7ee' : i1 === 0 ? '#fff4d6' : '#e9eef5', glows[k % 3], band);
+    const center = d === 1 ? V(0, 0, 0) : d === 2 ? C2 : LAKE_C;
+    const band = d === 3 ? '#7fe0ff' : d === 2 ? '#5be38a' : i1 === 0 ? '#ffd23f' : i1 >= 15 ? '#3fc1ff' : i1 >= 10 ? '#ff8a2a' : undefined;
+    const dm = buildDome(root, 1.25, d === 3 ? '#eaf8ff' : d === 2 ? '#eef7ee' : i1 === 0 ? '#fff4d6' : '#e9eef5', glows[k % 3], band);
     dm.position.copy(pos); dm.rotation.y = Math.atan2(-(pos.x - center.x), -(pos.z - center.z)) + Math.PI;
     if (r.f) cloths.push(buildFlag(root, pos.x, pos.z, r.f));
   });
@@ -174,7 +180,14 @@ export function buildWorld(scene: THREE.Scene) {
     return q;
   });
 
+  // ep7: the pipe from the water tank to the pump on the lake shore, water pulses running back to the tank
+  mesh(root, new RoundedBoxGeometry(2.2, 1.4, 2.2, 3, 0.18), toon('#c9ced8'), [PIPE1.x, 0.7, PIPE1.z]);
+  mesh(root, new THREE.CylinderGeometry(0.5, 0.5, 0.5, 14), toon('#3fc1ff'), [PIPE1.x, 1.65, PIPE1.z]);
+  const pipe = new THREE.Group(); pipe.position.copy(PIPE0); pipe.lookAt(PIPE1); root.add(pipe);
+  mesh(pipe, new THREE.CylinderGeometry(0.28, 0.28, PIPE0.distanceTo(PIPE1), 12), toon('#d9dde6'), [0, 0, PIPE0.distanceTo(PIPE1) / 2], [1, 1, 1], [Math.PI / 2, 0, 0]);
+  const pulses = Array.from({ length: 8 }, () => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo('#7fe0ff'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.setScalar(1.6); root.add(s); return s; });
+
   // highlight beam for the searched dome
   const beam = mesh(root, new THREE.CylinderGeometry(1.5, 1.7, 40, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }), [0, 20, 0], [1, 1, 1], [0, 0, 0], false);
-  return { cloths, qs, beam, ...terrain, ...fac };
+  return { cloths, qs, beam, pulses, ...terrain, ...fac };
 }
