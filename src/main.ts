@@ -7,6 +7,7 @@ import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { buildWorld, wave, HOMES, FREE, DOC, GATE_AT, C2, flagCanvas } from './world';
 import { RESIDENTS } from './residents';
 import { CHALLENGES } from './terrain';
+import { RES } from './resources';
 
 const GOAL = 100;
 const CHANNEL = 'https://www.youtube.com/@e7na3almareekh/shorts';
@@ -69,7 +70,7 @@ addEventListener('resize', resize); resize();
 
 // ---------------- labels ----------------
 const layer = $('#labels');
-type Lab = { el: HTMLDivElement; pos: THREE.Vector3; kind: 'home' | 'free' | 'place' | 'chal'; i?: number; k?: number; w: number; h: number };
+type Lab = { el: HTMLDivElement; pos: THREE.Vector3; kind: 'home' | 'free' | 'place' | 'chal' | 'fac'; i?: number; k?: number; w: number; h: number };
 const labs: Lab[] = [];
 const flagURL: Record<string, string> = {};
 const flagImg = (c: string) => (flagURL[c] ??= flagCanvas(c).toDataURL());
@@ -85,6 +86,8 @@ FREE.forEach((p) => { const el = document.createElement('div'); el.className = '
 
 CHALLENGES.forEach((c, k) => { const el = document.createElement('div'); el.className = 'lab chal'; el.textContent = c.title; el.addEventListener('click', (e) => { e.stopPropagation(); selectChal(k); }); layer.append(el); labs.push({ el, pos: c.tag.clone(), kind: 'chal', k, w: 0, h: 0 }); });
 
+RES.forEach((r, k) => { const el = document.createElement('div'); el.className = 'lab fac'; el.textContent = `${r.icon} ${r.fac}`; el.addEventListener('click', (e) => { e.stopPropagation(); selectRes(k); }); layer.append(el); labs.push({ el, pos: r.tag.clone(), kind: 'fac', k, w: 0, h: 0 }); });
+
 const v = new THREE.Vector3();
 let sel = -1, selC = -1;
 // declutter: nearest tags first; a tag that would overlap one already placed is hidden (the selected one always wins)
@@ -98,20 +101,20 @@ function placeLabels() {
   for (const L of labs) {
     v.copy(L.pos).project(cam);
     const x = (v.x * 0.5 + 0.5) * innerWidth, y = (-v.y * 0.5 + 0.5) * innerHeight;
-    const want = L.kind === 'place' || L.kind === 'chal' || L.i === sel || (L.kind === 'home' ? showHomes : dist < 40);
+    const want = L.kind === 'place' || L.kind === 'chal' || (L.kind === 'fac' && dist < 110) || L.i === sel || (L.kind === 'home' ? showHomes : dist < 40);
     if (!want || v.z >= 1 || x < -40 || x > innerWidth + 40 || y < top || y > bottom + 30) { L.el.style.display = 'none'; continue; }
     const d = cam.position.distanceTo(L.pos);
-    cand.push({ L, x, y, d, s: L.kind === 'chal' ? 1 : L.i === sel ? 1.1 : Math.max(0.62, Math.min(1.1, 30 / d)) });
+    cand.push({ L, x, y, d, s: L.kind === 'chal' || L.kind === 'fac' ? 0.95 : L.i === sel ? 1.1 : Math.max(0.62, Math.min(1.1, 30 / d)) });
   }
   cand.sort((a, b) => (b.L.i === sel ? 1 : 0) - (a.L.i === sel ? 1 : 0) || (a.L.kind === 'chal' ? 0 : a.L.kind === 'place' ? 1 : 0) - (b.L.kind === 'chal' ? 0 : b.L.kind === 'place' ? 1 : 0) || (a.L.kind === 'chal' ? -1 : 0) - (b.L.kind === 'chal' ? -1 : 0) || a.d - b.d);
   const placed: Box[] = [];
   for (const c of cand) {
     const L = c.L, el = L.el;
     el.classList.toggle('full', (full && L.kind === 'home') || L.i === sel);
-    el.classList.toggle('sel', (L.kind === 'home' && L.i === sel) || (L.kind === 'chal' && L.k === selC));
+    el.classList.toggle('sel', (L.kind === 'home' && L.i === sel) || (L.kind === 'chal' && L.k === selC) || (L.kind === 'fac' && (L.k ?? 0) + 100 === selC));
     el.style.display = '';
     if (!L.w || el.dataset.full !== String(el.classList.contains('full'))) { L.w = el.offsetWidth; L.h = el.offsetHeight; el.dataset.full = String(el.classList.contains('full')); }
-    if (L.kind === 'chal') c.x = Math.max(L.w / 2 + 6, Math.min(innerWidth - L.w / 2 - 6, c.x));
+    if (L.kind === 'chal' || L.kind === 'fac') c.x = Math.max(L.w / 2 + 6, Math.min(innerWidth - L.w / 2 - 6, c.x));
     const w = L.w * c.s, h = L.h * c.s, box: Box = [c.x - w / 2, c.y - h, c.x + w / 2, c.y];
     if (L.i !== sel && placed.some((b) => hit(b, box))) { el.style.display = 'none'; continue; }
     placed.push(box);
@@ -148,6 +151,17 @@ function selectChal(k: number) {
   $('#share').textContent = 'قول فكرتك 💬';
   card.classList.add('on', 'chal'); document.body.classList.add('carded');
 }
+const pct = (r: { cap: number }) => Math.min(999, Math.round((r.cap / RESIDENTS.length) * 100));
+function selectRes(k: number) {
+  const r = RES[k], ok = r.cap >= RESIDENTS.length; sel = -1; selC = -1;
+  flyTo({ p: r.at.clone().add(VIEW.clone().multiplyScalar(cam.aspect < 1 ? 42 : 30)), t: r.at.clone() }, 1500);
+  history.replaceState(null, '', '#' + r.key);
+  $('#cardName').textContent = `${r.icon} ${r.name}: ${ar(pct(r))}٪ ${ok ? '✅' : '⚠️'}`;
+  $('#cardHandle').textContent = '';
+  $('#cardWhere').textContent = ok ? `${r.fac} ${r.v ?? 'بيكفّي'} ${ar(r.cap)} ساكن… وإحنا ${ar(RESIDENTS.length)}. لسه في أمان` : `${r.fac} ${r.v ?? 'بيكفّي'} ${ar(r.cap)} ساكن بس… وإحنا ${ar(RESIDENTS.length)}! ${r.fix}`;
+  $('#share').textContent = ok ? 'قول فكرتك 💬' : 'قول الحل 💬';
+  selC = 100 + k; card.classList.add('on', 'chal'); document.body.classList.add('carded');
+}
 function showFree() { deselect(); const c = $('#cta'); c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse'); }
 
 // tap on the 3D city: pick the nearest dome under the finger
@@ -169,6 +183,11 @@ $('#count').textContent = ar(n);
 $('#goal').textContent = ar(GOAL);
 $('#bar i').style.width = Math.min(100, (n / GOAL) * 100) + '%';
 $('#free').textContent = ar(FREE.length);
+RES.forEach((r, k) => {
+  const b = document.createElement('button'); const p = pct(r), ok = p >= 100;
+  b.className = 'res' + (ok ? '' : ' low'); b.innerHTML = `${r.icon}<b>${ar(Math.min(p, 100))}٪</b>`;
+  b.title = r.name; b.onclick = () => selectRes(k); $('#chips').insertBefore(b, $('#chalBtn'));
+});
 ($('#cta') as HTMLAnchorElement).href = CHANNEL;
 const norm = (s: string) => s.toLowerCase().replace(/^@/, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[\s_\-.]+/g, '');
 const q = $('#q') as HTMLInputElement;
@@ -205,6 +224,8 @@ setTimeout(hideHint, 7000);
 
 // deep link: #@handle
 const hash = decodeURIComponent(location.hash.replace(/^#@?/, ''));
+const rk = RES.findIndex((r) => r.key === hash);
+if (rk >= 0) setTimeout(() => selectRes(rk), 700);
 const ck = CHALLENGES.findIndex((c) => c.key === hash);
 if (ck >= 0) setTimeout(() => selectChal(ck), 700);
 else if (hash) { const i = HOMES.findIndex((h) => norm(h.r.h) === norm(hash)); if (i >= 0) setTimeout(() => select(i), 700); }
@@ -225,6 +246,7 @@ function frame() {
   { const cd = cam.position.distanceTo(controls.target); const fog = scene.fog as THREE.Fog; fog.near = cd + 30; fog.far = cd + 200; }
   W.cloths.forEach((c, i) => wave(c, t, i));
   W.qs.forEach((s, i) => s.scale.setScalar(0.9 * (1 + 0.2 * Math.max(0, Math.sin(t * 4 + i)))));
+  W.beacon.material.opacity = (Math.sin(t * 3) > 0.6 ? 1 : 0.25);
   W.glint.material.opacity = 0.5 + 0.5 * Math.max(0, Math.sin(t * 2.3)) ** 3;
   W.lava.material.opacity = 0.45 + 0.15 * Math.sin(t * 1.1);
   (W.beam.material as THREE.MeshBasicMaterial).opacity = sel >= 0 ? 0.22 + 0.06 * Math.sin(t * 5) : 0;

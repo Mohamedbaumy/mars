@@ -6,6 +6,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { paintGround, tex, toon, flat, mesh, rng, V, OL } from './MarsKit';
 import { RESIDENTS } from './residents';
 import { buildGround, buildTerrain, onTerrain } from './terrain';
+import { buildFacilities, onFacility } from './resources';
 
 export const S = 4.2;
 type P = { x: number; z: number };
@@ -113,11 +114,12 @@ export function buildWorld(scene: THREE.Scene) {
   root.add(new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.MeshBasicMaterial({ map: stars(), side: THREE.BackSide, fog: false })));
   buildGround(root);
   const terrain = buildTerrain(root);
+  const fac = buildFacilities(root, RESIDENTS.length);
   const ht = tex(paintGround(11, '#5e2a1e', '#3a1610', '#7a3826'), 3, 2), hr = rng(5);
   for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2 + hr() * 0.3, d = 64 + hr() * 26, hx = Math.cos(a) * d + 4, hz = Math.sin(a) * d + 16; if (onTerrain(hx, hz)) continue; mesh(root, new THREE.SphereGeometry(1, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), toon('#ffffff', ht), [Math.cos(a) * d + 4, -0.5, Math.sin(a) * d + 16], [10 + hr() * 12, 3 + hr() * 6, 8 + hr() * 8], [0, hr() * 3, 0], false); }
   const rr = rng(9), rock = toon('#5a2618', ht);
   const busy = (x: number, z: number) => Math.max(Math.abs(x), Math.abs(z)) < 17.5 || (Math.abs(x - C2.x) < 13.5 && z > GATE_AT.z - 1 && z < C2.z + 13.5);
-  for (let i = 0; i < 90; i++) { const x = (rr() - 0.5) * 100, z = (rr() - 0.5) * 100 + 16; if (busy(x, z) || onTerrain(x, z)) continue; const s = 0.25 + rr() ** 2 * 1.4; mesh(root, new THREE.DodecahedronGeometry(1, 0), rock, [x, s * 0.3, z], [s, s * 0.7, s * 0.9], [rr() * 3, rr() * 3, rr() * 3]); }
+  for (let i = 0; i < 90; i++) { const x = (rr() - 0.5) * 100, z = (rr() - 0.5) * 100 + 16; if (busy(x, z) || onTerrain(x, z) || onFacility(x, z)) continue; const s = 0.25 + rr() ** 2 * 1.4; mesh(root, new THREE.DodecahedronGeometry(1, 0), rock, [x, s * 0.3, z], [s, s * 0.7, s * 0.9], [rr() * 3, rr() * 3, rr() * 3]); }
 
   // district 1
   mesh(root, new THREE.PlaneGeometry(S * 7 + 1.2, S * 7 + 1.2), toon('#a8614a', undefined, false), [0, 0.01, 0], [1, 1, 1], [-Math.PI / 2, 0, 0], false);
@@ -174,5 +176,5 @@ export function buildWorld(scene: THREE.Scene) {
 
   // highlight beam for the searched dome
   const beam = mesh(root, new THREE.CylinderGeometry(1.5, 1.7, 40, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }), [0, 20, 0], [1, 1, 1], [0, 0, 0], false);
-  return { cloths, qs, beam, ...terrain };
+  return { cloths, qs, beam, ...terrain, ...fac };
 }
