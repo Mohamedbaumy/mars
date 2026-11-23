@@ -1,0 +1,13 @@
+{
+  "name": "mars-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --minify --format=esm --outfile=docs/app.js",
+    "dev": "esbuild src/main.ts --bundle --format=esm --outfile=docs/app.js --servedir=docs --serve=7060"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.169.0"
+  }
+}

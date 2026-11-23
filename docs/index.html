@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>إحنا على المريخ 🚀 دوّر على قبتك</title>
+<meta name="description" content="مدينة على المريخ مبنية بأسامي المتابعين. كل كومنت = قبة باسمك وعلم بلدك.">
+<meta property="og:title" content="إحنا على المريخ 🚀 دوّر على قبتك">
+<meta property="og:description" content="كل كومنت = قبة باسمك وعلم بلدك على المريخ">
+<style>
+@font-face { font-family: Cairo; src: url(fonts/Cairo-Black.ttf); font-weight: 100 900; font-display: swap; }
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; overflow: hidden; background: #140b24; color: #fff; font-family: Cairo, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.lab { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; background: #fff8e8; color: #1b1210; border: 3px solid #1b1210; border-radius: 14px; padding: 2px 10px 3px; text-align: center; white-space: nowrap; box-shadow: 0 3px 0 #1b1210; transform-origin: 50% 100%; line-height: 1.25; }
+.lab b { display: flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 900; justify-content: center; }
+.lab img { width: 24px; height: 15px; border: 1.5px solid #1b1210; border-radius: 3px; }
+.lab i { display: none; font: 700 11px/1.1 Arial, sans-serif; opacity: .75; font-style: normal; }
+.lab.full i { display: block; }
+.lab.sel { background: #ffd23f; animation: bob 1s ease-in-out infinite alternate; }
+.lab.free { background: #2a1a3a; color: #ffd23f; border-color: #ffd23f; box-shadow: 0 3px 0 #000; font-size: 14px; font-weight: 900; }
+.lab.place { background: #1b1210; color: #ffd23f; font-size: 15px; font-weight: 900; pointer-events: none; }
+@keyframes bob { to { margin-top: -6px; } }
+
+#hud { position: fixed; top: 0; left: 0; right: 0; padding: 12px 14px 0; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+#hud > * { pointer-events: auto; }
+#top { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+h1 { font-size: 20px; font-weight: 900; text-shadow: 0 2px 0 #000; }
+#stat { background: rgba(20,11,36,.82); border: 2px solid #ffd23f; border-radius: 14px; padding: 4px 12px; text-align: center; min-width: 140px; }
+#stat b { font-size: 22px; color: #ffd23f; }
+#stat small { font-size: 12px; opacity: .85; display: block; margin-top: -4px; }
+#bar { height: 6px; background: #3b2a4f; border-radius: 4px; margin-top: 4px; overflow: hidden; }
+#bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffd23f, #ff8a2a); border-radius: 4px; }
+#search { position: relative; max-width: 440px; width: 100%; align-self: center; }
+#q { width: 100%; font: 900 17px Cairo, sans-serif; padding: 10px 44px 10px 14px; border-radius: 16px; border: 3px solid #1b1210; background: #fff8e8; color: #1b1210; box-shadow: 0 3px 0 #1b1210; outline: none; }
+#search::before { content: '🔍'; position: absolute; right: 14px; top: 11px; font-size: 18px; }
+#results { position: absolute; top: 52px; left: 0; right: 0; display: flex; flex-direction: column; gap: 4px; }
+#results button, #results .none { font: 900 16px Cairo, sans-serif; text-align: right; padding: 8px 14px; border-radius: 12px; border: 2px solid #1b1210; background: #fff8e8; color: #1b1210; cursor: pointer; }
+#results span { font: 700 12px Arial, sans-serif; opacity: .65; margin-inline-start: 6px; }
+#results a { color: #b3261e; }
+#bottom { position: fixed; bottom: 14px; left: 0; right: 0; display: flex; gap: 8px; justify-content: center; padding: 0 14px; flex-wrap: wrap; }
+#cta { display: block; text-decoration: none; text-align: center; background: #ffd23f; color: #1b1210; border: 3px solid #1b1210; border-radius: 16px; padding: 8px 16px; box-shadow: 0 4px 0 #1b1210; font-weight: 900; font-size: 15px; line-height: 1.35; max-width: 440px; }
+#cta small { display: block; font-size: 12px; opacity: .8; }
+#cta.pulse { animation: pulse .5s 3; }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+#home { background: #1b1210; color: #fff; border: 2px solid #ffd23f; border-radius: 14px; font: 900 14px Cairo, sans-serif; padding: 8px 12px; cursor: pointer; }
+#hint { position: fixed; bottom: 96px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .65; pointer-events: none; text-shadow: 0 1px 0 #000; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+<div id="hud">
+  <div id="top">
+    <h1>إحنا على المريخ 🚀</h1>
+    <div id="stat"><b id="count">٥٤</b> <small>ساكن · الهدف الجاي <span id="goal">١٠٠</span> قبة</small><div id="bar"><i></i></div></div>
+  </div>
+  <div id="search"><input id="q" placeholder="دوّر على قبتك: اسمك أو @يوزرك" autocomplete="off"><div id="results"></div></div>
+</div>
+<div id="hint">اسحب عشان تلف · قرّب بصباعين أو بالماوس عشان تشوف الأسامي</div>
+<div id="bottom">
+  <button id="home">🏙️ المدينة كلها</button>
+  <a id="cta" target="_blank" rel="noopener">مش لاقي اسمك؟ اكتب اسمك وعلم بلدك في كومنت 👇<small>لسه فيه <span id="free">٩</span> أراضي فاضية في الحي الجديد</small></a>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
