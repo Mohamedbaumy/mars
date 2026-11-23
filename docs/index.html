@@ -39,6 +39,11 @@ h1 { font-size: 18px; font-weight: 900; text-shadow: 0 2px 0 #000; white-space: 
 #stat small { font-size: 11px; opacity: .9; }
 #bar { height: 5px; background: #3b2a4f; border-radius: 4px; overflow: hidden; }
 #bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffd23f, #ff8a2a); border-radius: 4px; }
+#chips { order: 3; }
+#chalBtn { background: rgba(20,11,36,.85); color: #ffd23f; border: 2px solid #ffd23f; border-radius: 12px; font: 900 13px Cairo, sans-serif; padding: 3px 12px; cursor: pointer; }
+.lab.chal { background: #3a0f0a; color: #ffb48a; border-color: #ff8a4a; box-shadow: 0 3px 0 #000; font-size: 14px; font-weight: 900; }
+.lab.chal.sel { background: #ff8a4a; color: #1b1210; }
+#card.chal #share { background: #ff6a2a; }
 #search { position: relative; width: 100%; max-width: 520px; }
 #q { width: 100%; font: 900 16px Cairo, sans-serif; padding: 9px 42px 9px 12px; border-radius: 14px; border: 2.5px solid #1b1210; background: #fff8e8; color: #1b1210; box-shadow: 0 3px 0 #1b1210; outline: none; -webkit-user-select: text; user-select: text; -webkit-appearance: none; appearance: none; }
 #search::before { content: '🔍'; position: absolute; right: 13px; top: 10px; font-size: 17px; pointer-events: none; }
@@ -90,6 +95,7 @@ body.carded #hint { display: none; }
     <h1>إحنا على المريخ 🚀</h1>
     <div id="stat"><div class="row"><b id="count">٥٤</b><small>ساكن · الهدف <span id="goal">١٠٠</span></small></div><div id="bar"><i></i></div></div>
   </div>
+  <div id="chips"><button id="chalBtn">⛰️ التحديات الجاية</button></div>
   <div id="search"><input id="q" type="search" inputmode="search" enterkeyhint="search" placeholder="دوّر على قبتك: اسمك أو @يوزرك" autocomplete="off" autocorrect="off" spellcheck="false"><div id="results"></div></div>
 </div>
 <div id="hint"><span>👆 اسحب · ✌️ قرّب ولِف · دوس على أي قبة</span></div>

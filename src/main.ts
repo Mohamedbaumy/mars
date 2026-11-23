@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { buildWorld, wave, HOMES, FREE, DOC, GATE_AT, C2, flagCanvas } from './world';
 import { RESIDENTS } from './residents';
+import { CHALLENGES } from './terrain';
 
 const GOAL = 100;
 const CHANNEL = 'https://www.youtube.com/@e7na3almareekh/shorts';
@@ -28,16 +29,17 @@ moon.position.set(-18, 44, 30); moon.target.position.set(4, 0, 18); scene.add(mo
 gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true;   // the city is static: render shadows once
 const fx = new OutlineEffect(gl, { defaultThickness: 0.0055, defaultColor: [0.05, 0.03, 0.06] });
 
-const cam = new THREE.PerspectiveCamera(40, 1, 0.5, 600);
+const cam = new THREE.PerspectiveCamera(40, 1, 0.5, 2000);
 const controls = new OrbitControls(cam, canvas);
 controls.enableDamping = true; controls.dampingFactor = 0.09;
-controls.maxPolarAngle = 1.25; controls.minDistance = 9; controls.maxDistance = 170;
+controls.maxPolarAngle = 1.25; controls.minDistance = 9; controls.maxDistance = 420;
 controls.screenSpacePanning = false;                                  // pan slides along the ground like a map
 controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
 controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
 controls.zoomToCursor = true;
 const CITY = new THREE.Vector3(4.2, 0, 17), CITY_R = 34;           // both districts + the road
-const clampTarget = () => { const t = controls.target; const d = Math.hypot(t.x - CITY.x, t.z - CITY.z); if (d > CITY_R) { t.x = CITY.x + (t.x - CITY.x) * CITY_R / d; t.z = CITY.z + (t.z - CITY.z) * CITY_R / d; } t.y = 0; };
+const BOUND = 95;                                                   // the city + the terrain challenges around it
+const clampTarget = () => { const t = controls.target; const d = Math.hypot(t.x - CITY.x, t.z - CITY.z); if (d > BOUND) { t.x = CITY.x + (t.x - CITY.x) * BOUND / d; t.z = CITY.z + (t.z - CITY.z) * BOUND / d; } };
 
 // the city's long axis (district 1 → gate → district 2) runs along +z, so it is laid out vertically on a portrait screen
 const VIEW = new THREE.Vector3(0.1, 0.84, 0.53).normalize();   // from target toward the camera
@@ -51,6 +53,13 @@ function homePose(p: THREE.Vector3) {
   const d = cam.aspect < 1 ? 40 : 30;
   return { p: p.clone().add(VIEW.clone().multiplyScalar(d)), t: p.clone() };
 }
+// wide view that frames the city and all four challenges
+function worldPose() {
+  const vf = THREE.MathUtils.degToRad(cam.fov), hf = 2 * Math.atan(Math.tan(vf / 2) * cam.aspect);
+  const d = Math.max(46 / Math.tan(hf / 2), 100 * 0.55 / Math.tan(vf / 2));
+  const t = new THREE.Vector3(-2, 0, 5);
+  return { p: t.clone().add(VIEW.clone().multiplyScalar(d)), t };
+}
 function resize() {
   const w = innerWidth, h = innerHeight;
   gl.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
@@ -60,7 +69,7 @@ addEventListener('resize', resize); resize();
 
 // ---------------- labels ----------------
 const layer = $('#labels');
-type Lab = { el: HTMLDivElement; pos: THREE.Vector3; kind: 'home' | 'free' | 'place'; i?: number; w: number; h: number };
+type Lab = { el: HTMLDivElement; pos: THREE.Vector3; kind: 'home' | 'free' | 'place' | 'chal'; i?: number; k?: number; w: number; h: number };
 const labs: Lab[] = [];
 const flagURL: Record<string, string> = {};
 const flagImg = (c: string) => (flagURL[c] ??= flagCanvas(c).toDataURL());
@@ -74,8 +83,10 @@ FREE.forEach((p) => { const el = document.createElement('div'); el.className = '
 ([[DOC, 'قبة الدكتور 🧑‍🔬', 5.2], [new THREE.Vector3(GATE_AT.x, 0, GATE_AT.z), 'بوابة الحي الجديد ✨', 7.6], [C2, 'الحي الجديد', 4.4]] as [THREE.Vector3, string, number][])
   .forEach(([p, t, y]) => { const el = document.createElement('div'); el.className = 'lab place'; el.textContent = t; layer.append(el); labs.push({ el, pos: p.clone().setY(y), kind: 'place', w: 0, h: 0 }); });
 
+CHALLENGES.forEach((c, k) => { const el = document.createElement('div'); el.className = 'lab chal'; el.textContent = c.title; el.addEventListener('click', (e) => { e.stopPropagation(); selectChal(k); }); layer.append(el); labs.push({ el, pos: c.tag.clone(), kind: 'chal', k, w: 0, h: 0 }); });
+
 const v = new THREE.Vector3();
-let sel = -1;
+let sel = -1, selC = -1;
 // declutter: nearest tags first; a tag that would overlap one already placed is hidden (the selected one always wins)
 type Box = [number, number, number, number];
 const hit = (a: Box, b: Box) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
@@ -87,19 +98,20 @@ function placeLabels() {
   for (const L of labs) {
     v.copy(L.pos).project(cam);
     const x = (v.x * 0.5 + 0.5) * innerWidth, y = (-v.y * 0.5 + 0.5) * innerHeight;
-    const want = L.kind === 'place' || L.i === sel || (L.kind === 'home' ? showHomes : dist < 40);
+    const want = L.kind === 'place' || L.kind === 'chal' || L.i === sel || (L.kind === 'home' ? showHomes : dist < 40);
     if (!want || v.z >= 1 || x < -40 || x > innerWidth + 40 || y < top || y > bottom + 30) { L.el.style.display = 'none'; continue; }
     const d = cam.position.distanceTo(L.pos);
-    cand.push({ L, x, y, d, s: L.i === sel ? 1.1 : Math.max(0.62, Math.min(1.1, 30 / d)) });
+    cand.push({ L, x, y, d, s: L.kind === 'chal' ? 1 : L.i === sel ? 1.1 : Math.max(0.62, Math.min(1.1, 30 / d)) });
   }
-  cand.sort((a, b) => (b.L.i === sel ? 1 : 0) - (a.L.i === sel ? 1 : 0) || (a.L.kind === 'place' ? 1 : 0) - (b.L.kind === 'place' ? 1 : 0) || a.d - b.d);
+  cand.sort((a, b) => (b.L.i === sel ? 1 : 0) - (a.L.i === sel ? 1 : 0) || (a.L.kind === 'chal' ? 0 : a.L.kind === 'place' ? 1 : 0) - (b.L.kind === 'chal' ? 0 : b.L.kind === 'place' ? 1 : 0) || (a.L.kind === 'chal' ? -1 : 0) - (b.L.kind === 'chal' ? -1 : 0) || a.d - b.d);
   const placed: Box[] = [];
   for (const c of cand) {
     const L = c.L, el = L.el;
     el.classList.toggle('full', (full && L.kind === 'home') || L.i === sel);
-    el.classList.toggle('sel', L.i === sel);
+    el.classList.toggle('sel', (L.kind === 'home' && L.i === sel) || (L.kind === 'chal' && L.k === selC));
     el.style.display = '';
     if (!L.w || el.dataset.full !== String(el.classList.contains('full'))) { L.w = el.offsetWidth; L.h = el.offsetHeight; el.dataset.full = String(el.classList.contains('full')); }
+    if (L.kind === 'chal') c.x = Math.max(L.w / 2 + 6, Math.min(innerWidth - L.w / 2 - 6, c.x));
     const w = L.w * c.s, h = L.h * c.s, box: Box = [c.x - w / 2, c.y - h, c.x + w / 2, c.y];
     if (L.i !== sel && placed.some((b) => hit(b, box))) { el.style.display = 'none'; continue; }
     placed.push(box);
@@ -115,7 +127,8 @@ function flyTo(pose: { p: THREE.Vector3; t: THREE.Vector3 }, ms = 1400) {
 }
 const card = $('#card');
 function select(i: number) {
-  sel = i; const h = HOMES[i];
+  sel = i; selC = -1; card.classList.remove('chal');
+  $('#share').textContent = 'شارك قبتك 📤'; const h = HOMES[i];
   W.beam.position.set(h.pos.x, 20, h.pos.z);
   flyTo(homePose(h.pos));
   history.replaceState(null, '', '#@' + encodeURIComponent(h.r.h));
@@ -125,7 +138,16 @@ function select(i: number) {
   $('#cardWhere').textContent = h.d === 1 ? 'الحي الأول · جنب قبة الدكتور' : 'الحي الجديد · ورا البوابة الدهب';
   card.classList.add('on'); document.body.classList.add('carded');
 }
-function deselect() { sel = -1; card.classList.remove('on'); document.body.classList.remove('carded'); history.replaceState(null, '', location.pathname); }
+function deselect() { sel = -1; selC = -1; card.classList.remove('on'); document.body.classList.remove('carded'); history.replaceState(null, '', location.pathname); }
+function selectChal(k: number) {
+  const c = CHALLENGES[k]; sel = -1; selC = k;
+  const dir = c.low ? new THREE.Vector3(0.1, 0.42, 0.9).normalize() : VIEW;
+  flyTo({ p: c.at.clone().add(dir.clone().multiplyScalar(c.view * (cam.aspect < 1 ? 1.6 : 1))), t: c.at.clone().setY(c.low ? 6 : 0) }, 1700);
+  history.replaceState(null, '', '#' + c.key);
+  $('#cardName').textContent = c.title; $('#cardHandle').textContent = ''; $('#cardWhere').textContent = c.desc;
+  $('#share').textContent = 'قول فكرتك 💬';
+  card.classList.add('on', 'chal'); document.body.classList.add('carded');
+}
 function showFree() { deselect(); const c = $('#cta'); c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse'); }
 
 // tap on the 3D city: pick the nearest dome under the finger
@@ -165,7 +187,9 @@ q.onkeydown = (e) => { if (e.key === 'Enter') ($('#results button') as HTMLButto
 q.onfocus = () => { hideHint(); };
 $('#home').onclick = () => { deselect(); flyTo(overviewPose(), 1200); };
 $('#close').onclick = () => deselect();
+$('#chalBtn').onclick = () => { deselect(); flyTo(worldPose(), 1800); };
 $('#share').onclick = async () => {
+  if (selC >= 0) { open(CHANNEL, '_blank', 'noopener'); return; }
   if (sel < 0) return;
   const h = HOMES[sel], url = location.origin + location.pathname + '#@' + encodeURIComponent(h.r.h);
   const text = `دي قبتي على المريخ 🚀 ${h.r.n}`;
@@ -181,7 +205,9 @@ setTimeout(hideHint, 7000);
 
 // deep link: #@handle
 const hash = decodeURIComponent(location.hash.replace(/^#@?/, ''));
-if (hash) { const i = HOMES.findIndex((h) => norm(h.r.h) === norm(hash)); if (i >= 0) setTimeout(() => select(i), 700); }
+const ck = CHALLENGES.findIndex((c) => c.key === hash);
+if (ck >= 0) setTimeout(() => selectChal(ck), 700);
+else if (hash) { const i = HOMES.findIndex((h) => norm(h.r.h) === norm(hash)); if (i >= 0) setTimeout(() => select(i), 700); }
 
 // ---------------- loop (render only while something moves) ----------------
 const clock = new THREE.Clock();
@@ -196,8 +222,11 @@ function frame() {
     if (u >= 1) fly = null;
   }
   controls.update(); clampTarget();
+  { const cd = cam.position.distanceTo(controls.target); const fog = scene.fog as THREE.Fog; fog.near = cd + 30; fog.far = cd + 200; }
   W.cloths.forEach((c, i) => wave(c, t, i));
   W.qs.forEach((s, i) => s.scale.setScalar(0.9 * (1 + 0.2 * Math.max(0, Math.sin(t * 4 + i)))));
+  W.glint.material.opacity = 0.5 + 0.5 * Math.max(0, Math.sin(t * 2.3)) ** 3;
+  W.lava.material.opacity = 0.45 + 0.15 * Math.sin(t * 1.1);
   (W.beam.material as THREE.MeshBasicMaterial).opacity = sel >= 0 ? 0.22 + 0.06 * Math.sin(t * 5) : 0;
   fx.render(scene, cam);
   placeLabels();
