@@ -188,13 +188,17 @@ RES.forEach((r, k) => {
   b.className = 'res' + (ok ? '' : ' low'); b.innerHTML = `${r.icon}<b>${ar(Math.min(p, 100))}٪</b>`;
   b.title = r.name; b.onclick = () => selectRes(k); $('#chips').insertBefore(b, $('#chalBtn'));
 });
-($('#cta') as HTMLAnchorElement).href = CHANNEL;
+($('#cta') as HTMLAnchorElement).href = CHANNEL; $('#cta').addEventListener('click', () => track('cta-comment', 'دوس اكتب اسمك في كومنت'));
 const norm = (s: string) => s.toLowerCase().replace(/^@/, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[\s_\-.]+/g, '');
+// visit stats (GoatCounter, loaded in index.html): page views are counted automatically, these are the actions
+const track = (path: string, title: string) => { const gc = (window as any).goatcounter; if (gc?.count) gc.count({ path, title, event: true }); };
+const once = new Set<string>(); const trackOnce = (p: string, t: string) => { if (!once.has(p)) { once.add(p); track(p, t); } };
 const q = $('#q') as HTMLInputElement;
 q.oninput = () => {
   const k = norm(q.value); const box = $('#results'); box.innerHTML = '';
   if (!k) return;
   const hits = HOMES.map((h, i) => ({ h, i })).filter(({ h }) => norm(h.r.n).includes(k) || norm(h.r.h).includes(k)).slice(0, 6);
+  if (k.length >= 2) trackOnce(hits.length ? 'search-found' : 'search-miss', hits.length ? 'بحث ولقى قبته' : 'بحث وملقاش اسمه');
   if (!hits.length) { box.innerHTML = `<div class="none">لسه مش لاقيين الاسم ده… <a href="${CHANNEL}" target="_blank" rel="noopener">اكتب اسمك في كومنت 👇</a></div>`; return; }
   hits.forEach(({ h, i }) => {
     const b = document.createElement('button');
@@ -208,10 +212,10 @@ $('#home').onclick = () => { deselect(); flyTo(overviewPose(), 1200); };
 $('#close').onclick = () => deselect();
 $('#chalBtn').onclick = () => { deselect(); flyTo(worldPose(), 1800); };
 $('#share').onclick = async () => {
-  if (selC >= 0) { open(CHANNEL, '_blank', 'noopener'); return; }
+  if (selC >= 0) { track('comment-click', 'دوس قول فكرتك'); open(CHANNEL, '_blank', 'noopener'); return; }
   if (sel < 0) return;
   const h = HOMES[sel], url = location.origin + location.pathname + '#@' + encodeURIComponent(h.r.h);
-  const text = `دي قبتي على المريخ 🚀 ${h.r.n}`;
+  const text = `دي قبتي على المريخ 🚀 ${h.r.n}`; track('share', 'شارك قبته');
   try {
     if (navigator.share) await navigator.share({ title: 'إحنا على المريخ', text, url });
     else { await navigator.clipboard.writeText(`${text}\n${url}`); toast('اتنسخ الرابط ✅'); }
@@ -228,7 +232,7 @@ const rk = RES.findIndex((r) => r.key === hash);
 if (rk >= 0) setTimeout(() => selectRes(rk), 700);
 const ck = CHALLENGES.findIndex((c) => c.key === hash);
 if (ck >= 0) setTimeout(() => selectChal(ck), 700);
-else if (hash) { const i = HOMES.findIndex((h) => norm(h.r.h) === norm(hash)); if (i >= 0) setTimeout(() => select(i), 700); }
+else if (hash) { const i = HOMES.findIndex((h) => norm(h.r.h) === norm(hash)); if (i >= 0) { setTimeout(() => select(i), 700); setTimeout(() => track('from-share', 'دخل من رابط قبة متشاركة'), 3000); } }
 
 // ---------------- loop (render only while something moves) ----------------
 const clock = new THREE.Clock();
